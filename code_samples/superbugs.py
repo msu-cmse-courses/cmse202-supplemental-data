@@ -15,6 +15,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 # =============================================================================
 # constants
 # =============================================================================
@@ -55,7 +56,7 @@ class Bug():
         draw()
             Draws the bug with rgb color corresponding to it's genes.
     """
-    
+
     def __init__(self, c=0, r=0, mutation_rate=0.2):
         """Initializes a bug with random genes. Default location is (0, 0).
            Default mutation rate is 0.2.
@@ -73,7 +74,7 @@ class Bug():
         self.genes = np.random.rand(3)
         self.loc = (c, r)
         self.mutation_rate = mutation_rate
-    
+
     def mitosis(self):
         """Returns a new bug.
         
@@ -85,19 +86,20 @@ class Bug():
             if random.random() > self.mutation_rate:
                 newbug.genes[i] = self.genes[i]
         return newbug
-    
+
     def draw(self):
         """Draws the bug with rgb color corresponding to it's genes."""
         plt.scatter(self.loc[0], self.loc[1], color=self.genes)
+
 
 # =============================================================================
 # petri_dish class
 # =============================================================================
 
-class Petri_dish():
-    """Petri_dish class.
+class PetriDish():
+    """PetriDish class.
     
-    Generates a petridish representing the world where the bugs live. 
+    Generates a petri dish representing the world where the bugs live.
     Each dish has antibiotics and a list of bugs.
     
     Attributes:
@@ -120,7 +122,7 @@ class Petri_dish():
         draw()
             Draws the world as an image and plots each bug.
     """
-    
+
     def __init__(self, n_rows=45, n_cols=90,
                  antibods=[0, 0.5, 0.75, 0.8, 0.95, 0.8, 0.75, 0.5, 0],
                  init_cols=[0, 89],
@@ -146,10 +148,10 @@ class Petri_dish():
         """
         # error check on inputs
         assert n_cols % len(antibods) == 0, \
-        "ERROR: Number of anitbodies must evenly divide the number of columns"
-        
+            "ERROR: Number of anitbodies must evenly divide the number of columns"
+
         assert init_cols[0] >= 0 and init_cols[1] < n_cols, \
-        "Starting columns must be greater than zero and less than the total number of columns."
+            "Starting columns must be greater than zero and less than the total number of columns."
 
         # dictionary of location, bug key value pairs
         self.buglist = dict()
@@ -161,11 +163,11 @@ class Petri_dish():
         self._basic_setup(n_rows=n_rows, n_cols=n_cols,
                           antibods=antibods, init_cols=init_cols,
                           bug_mutation_rate=bug_mutation_rate)
-    
+
     def _basic_setup(self, n_rows=45, n_cols=90,
-                    antibods=[0, 0.5, 0.75, 0.8, 0.95, 0.8, 0.75, 0.5, 0],
-                    init_cols=[0, 89],
-                    bug_mutation_rate=0.2):
+                     antibods=[0, 0.5, 0.75, 0.8, 0.95, 0.8, 0.75, 0.5, 0],
+                     init_cols=[0, 89],
+                     bug_mutation_rate=0.2):
         """Sets up the world.
         
         Helper function for __init__ method with same arguments as __init__.
@@ -177,20 +179,20 @@ class Petri_dish():
 
             # bugs on the left
             br = Bug(init_cols[0], row, bug_mutation_rate)
-            
+
             # add initial points to active and buglist
             self.buglist[br.loc] = br
             self.buglist[bl.loc] = bl
             self.active.add(br.loc)
             self.active.add(bl.loc)
-            
+
         # set up the board of antibodies
         step = n_cols // len(antibods)
-        self.antibodies=np.zeros((n_rows, n_cols, 3))
+        self.antibodies = np.zeros((n_rows, n_cols, 3))
         for ii in range(n_cols // step):
             self.antibodies[:, ii * step: (ii + 1) * step + 1] = [antibods[ii]] * 3
-        
-    def timestep(self):        
+
+    def timestep(self):
         """Performs one time step of the simulation.
         
         Loops through the bugs, finds their neighbors and initiates mitosis.
@@ -233,7 +235,7 @@ class Petri_dish():
         self.buglist.update(newbugs)
         self.active.update(newbugs)
 
-    def draw(self,background=None):
+    def draw(self, background=None):
         """Draws the world as an image and plots each bug."""
         plt.imshow(1.0 - self.antibodies)
         [self.buglist[b].draw() for b in self.buglist]
