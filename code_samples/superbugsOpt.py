@@ -1,9 +1,10 @@
-"""superbugs.py
+"""superbugsOpt.py
 
 Contains class definitions for modeling the evolution of bacteria in the
-presence of antibiotics.
+presence of antibiotics that are optimized for faster animations.
 """
 
+# Optimized by Nathan Haut in Fall Semester 2025
 # =============================================================================
 # imports
 # =============================================================================
