@@ -87,10 +87,11 @@ class Bug():
             if random.random() > self.mutation_rate:
                 newbug.genes[i] = self.genes[i]
         return newbug
-
-    def draw(self):
-        """Draws the bug with rgb color corresponding to it's genes."""
-        plt.scatter(self.loc[0], self.loc[1], color=self.genes)
+        
+    #Old drawing code
+    #def draw(self):
+    #    """Draws the bug with rgb color corresponding to it's genes."""
+    #    plt.scatter(self.loc[0], self.loc[1], color=self.genes)
 
     def getCoords(self):
         """Gets the coordinates of a bug."""
