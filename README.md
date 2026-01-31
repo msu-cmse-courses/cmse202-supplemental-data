@@ -1,5 +1,5 @@
 # CMSE 202: Computational Modeling and Data Analysis II
-## Fall 2022
+## Spring 2026
 
 This is a supplemental data repository for CMSE 202. It contains data files and scripts that may be used at some point in the course. This includes (in various directories):
 
