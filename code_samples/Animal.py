@@ -1,7 +1,7 @@
 import datetime
 
 
-class Animal(object):
+class Animal:
     """
         This is an Animal class, used to store information about animals in the Zoo. Or for characters in the Madagascar movies.
     """
