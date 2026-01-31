@@ -3,7 +3,7 @@
 
 import numpy as np
 
-class Perceptron(object):
+class Perceptron:
     def __init__(self, learning_rate=0.01, n_iters=1000):
         self.learning_rate = learning_rate  # Learning rate
         self.n_iters = n_iters              # Number of iterations over the training set
