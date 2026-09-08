@@ -38,7 +38,10 @@ class Bug():
         
         loc [type: tuple]
             Ordered pair of coordinates specifying the bug's location.
-            
+        
+        active [type: bool]
+            True if the bug is alive (capable to reproduce), False if it is dead.
+                
         mutation_rate [type: float]
             The mutation rate for the bacterium
         
@@ -57,7 +60,7 @@ class Bug():
             Draws the bug with rgb color corresponding to it's genes.
     """
 
-    def __init__(self, c=0, r=0, mutation_rate=0.2):
+    def __init__(self, c=0, r=0, mutation_rate=0.2, active=True):
         """Initializes a bug with random genes. Default location is (0, 0).
            Default mutation rate is 0.2.
         
@@ -73,15 +76,18 @@ class Bug():
         """
         self.genes = np.random.rand(3)
         self.loc = (c, r)
+        self.active = True 
         self.mutation_rate = mutation_rate
 
-    def mitosis(self):
+    def mitosis(self, c=0, r=0):
         """Returns a new bug.
         
         Copies genes from the current bug to the new bug with probability
         equal to 1 - mutation_rate. Else, assigns new genes at random.
+        
+        places the new bug at location (c, r)
         """
-        newbug = Bug(mutation_rate=self.mutation_rate)
+        newbug = Bug(c=c, r=r, mutation_rate=self.mutation_rate)
         for (i, g) in enumerate(self.genes):
             if random.random() > self.mutation_rate:
                 newbug.genes[i] = self.genes[i]
@@ -103,12 +109,9 @@ class PetriDish():
     Each dish has antibiotics and a list of bugs.
     
     Attributes:
-        buglist [type: dict]
-            dictionary of all bugs in simulation
+        buglist [type: list<Bug>]
+            list of all Bugs in simulation
         
-        active [type: set]
-            set of active (i.e., not dead) bugs
-            
         antibodies [type: numpy array]
             2d grid storing the values of the antibiotics at each point
         
@@ -153,11 +156,8 @@ class PetriDish():
         assert init_cols[0] >= 0 and init_cols[1] < n_cols, \
             "Starting columns must be greater than zero and less than the total number of columns."
 
-        # dictionary of location, bug key value pairs
-        self.buglist = dict()
-
-        # set of active bugs
-        self.active = set()
+        # list of all the bugs in the simulation
+        self.buglist = []
 
         # sets the attribute self.antibodies that stores the world info
         self._basic_setup(n_rows=n_rows, n_cols=n_cols,
@@ -172,19 +172,17 @@ class PetriDish():
         
         Helper function for __init__ method with same arguments as __init__.
         """
-        # initialize bugs
+        # initialize bugs on the left and right sides of the petri dish
         for row in range(n_rows):
             # bugs on the left
-            bl = Bug(init_cols[1], row, bug_mutation_rate)
+            bl = Bug(c=init_cols[1], r=row, mutation_rate=bug_mutation_rate)
 
-            # bugs on the left
-            br = Bug(init_cols[0], row, bug_mutation_rate)
+            # bugs on the right
+            br = Bug(c=init_cols[0], r=row, mutation_rate=bug_mutation_rate)
 
-            # add initial points to active and buglist
-            self.buglist[br.loc] = br
-            self.buglist[bl.loc] = bl
-            self.active.add(br.loc)
-            self.active.add(bl.loc)
+            # add initial bugs the buglist
+            self.buglist.append(br)
+            self.buglist.append(bl)
 
         # set up the board of antibodies
         step = n_cols // len(antibods)
@@ -199,43 +197,44 @@ class PetriDish():
         New bugs will die if their gene values are less than the corresponding
         antibiotic values.
         """
-        newbugs = dict()
+        newbugs = []
         n_cols = self.antibodies.shape[1]
         n_rows = self.antibodies.shape[0]
 
-        these_bugs = self.active.copy()
+        occupied = {bug.loc for bug in self.buglist} # makes a set of all the occupied locations for fast lookup
 
-        for b in these_bugs:
-            c = b[0]
-            r = b[1]
-            parent_bug = self.buglist[b]
+        for b_now in self.buglist:
+            if b_now.active == True:
+                c = b_now.loc[0]
+                r = b_now.loc[1]
+                empty_neighbors = [] # List of coordinates of empty neighbors, potential locations for new bugs
+                for dc in range(c - 1, c + 2):
+                    for dr in range(r - 1, r + 2):
+                        if dc >= 0 and dc < n_cols and dr >= 0 and dr < n_rows:
+                            if (dc, dr) not in occupied:
+                                empty_neighbors.append((dc, dr))                
+                
+                if empty_neighbors:
+                    loc = random.choice(empty_neighbors) # pick one of the empty neighbors at random
+                    child_bug = b_now.mitosis(c=loc[0], r=loc[1])
+                    
+                    # check if bug survives in the new location
+                    alive = True
+                    for i, g in enumerate(child_bug.genes): # Loop through each gene
+                        if g < self.antibodies[loc[1], loc[0], i]:
+                            alive = False
+                    child_bug.active = alive
+                    occupied.add(loc) # mark the new location as occupied
+                    newbugs.append(child_bug)
+                    
+                else:  # If there are no empty neighbors, the bug cannot reproduce, so we set to inactive
+                    b_now.active = False
 
-            neighbors = []
-            for dc in range(c - 1, c + 2):
-                for dr in range(r - 1, r + 2):
-                    key = (dc, dr)
-                    if dc >= 0 and dc < n_cols and dr >= 0 and dr < n_rows:
-                        if not key in self.buglist:
-                            neighbors.append(key)
-            if neighbors:
-                child_bug = parent_bug.mitosis()
-                loc = random.choice(neighbors)
+        self.buglist.extend(newbugs) # add all the new bugs to the buglist
 
-                # check if bug lives
-                child_bug.loc = loc
-                alive = True
-                for i, g in enumerate(child_bug.genes):
-                    if g < self.antibodies[loc[1], loc[0], i]:
-                        alive = False
-                if alive:
-                    newbugs[child_bug.loc] = child_bug
-            else:
-                self.active.remove((c, r))
 
-        self.buglist.update(newbugs)
-        self.active.update(newbugs)
 
     def draw(self, background=None):
         """Draws the world as an image and plots each bug."""
         plt.imshow(1.0 - self.antibodies)
-        [self.buglist[b].draw() for b in self.buglist]
+        [b.draw() for b in self.buglist]
