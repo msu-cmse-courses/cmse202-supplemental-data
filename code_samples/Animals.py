@@ -94,7 +94,7 @@ class Zebra(Animal):
         kind = 'zebra'
         # this calls initialization of Animal class and setting the animal to given 'name'
         super().__init__(kind, name)
-        # in lines below we defined attribute values for lions
+        # in lines below we defined attribute values for zebras
         self.required_area = 100
         self.required_staff = 1
 
@@ -105,7 +105,7 @@ class Penguin(Animal):
         kind = 'penguin'
         # this calls initialization of Animal class and setting the animal to given 'name'
         super().__init__(kind, name)
-        # in lines below we defined attribute values for lions
+        # in lines below we defined attribute values for penguins
         self.required_area = 300
         self.required_staff = 0.5
 
@@ -122,7 +122,7 @@ class Lion(Animal):
         # this calls initialization of Animal class and setting the animal to given 'name'
         super().__init__(kind, name)
         # in lines below we defined attribute values for lions
-        # default required area: ENTER VALUE (arbitrary one or one you used in previous in-class assignment)
+        # default required area for a lion
         self.required_area = 600
-        # set default number of Zoo keepers for lions: ENTER VALUE (arbitrary one or one you used in previous in-class assignment)
+        # default number of zookeepers needed for a lion
         self.required_staff = 2
