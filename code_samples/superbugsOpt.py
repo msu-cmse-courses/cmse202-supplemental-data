@@ -22,6 +22,11 @@ import matplotlib.pyplot as plt
 # constants
 # =============================================================================
 
+# Default antibiotic strengths across the dish, listed left to right. The dish
+# is split into len(DEFAULT_ANTIBIOTICS) equal-width vertical bands, each filled
+# with the corresponding value, so its length must evenly divide n_cols.
+DEFAULT_ANTIBIOTICS = [0, 0.5, 0.75, 0.8, 0.95, 0.8, 0.75, 0.5, 0]
+
 
 # =============================================================================
 # bug class
@@ -78,7 +83,7 @@ class Bug():
         """
         self.genes = np.random.rand(3)
         self.loc = (c, r)
-        self.active = True 
+        self.active = active
         self.mutation_rate = mutation_rate
 
     def mitosis(self, c=0, r=0):
@@ -123,7 +128,7 @@ class PetriDish():
         buglist [type: list<Bug>]
             list of all Bugs in simulation
         
-        antibodies [type: numpy array]
+        antibiotics [type: numpy array]
             2d grid storing the values of the antibiotics at each point
         
     Methods:
@@ -138,68 +143,76 @@ class PetriDish():
     """
 
     def __init__(self, n_rows=45, n_cols=90,
-                 antibods=[0, 0.5, 0.75, 0.8, 0.95, 0.8, 0.75, 0.5, 0],
-                 init_cols=[0, 89],
+                 antibiotics=None,
+                 init_cols=None,
                  bug_mutation_rate=0.2):
         """Initializes the world.
-        
+
         Args:
             n_rows [type: int]
                 number of rows in world
-            
+
             n_cols [type: int]
                 number of columns in world
-            
-            antibods [type: list<float>]
-                antibiotic values in each region of the world
-                length of antibods must evenly divide n_cols
-            
-            init_cols [type: list<int>]
-                starting columns for the antibiotics
+
+            antibiotics [type: list<float> or None]
+                antibiotic values in each region of the world; the dish is split
+                into len(antibiotics) equal-width vertical bands, so its length must
+                evenly divide n_cols. If None (the default), DEFAULT_ANTIBIOTICS is
+                used.
+
+            init_cols [type: list<int> or None]
+                Columns at which the initial bacteria are seeded -- one bug is
+                placed in every row at each column listed. Any number of columns
+                may be given, and each must be in the range [0, n_cols). If None
+                (the default), bacteria start at the left and right edges of the
+                dish, i.e. [0, n_cols - 1].
                 
             bug_mutation_rate [type: float]
                 the mutation rate of the bacteria in this dish
         """
-        # error check on inputs
-        assert n_cols % len(antibods) == 0, \
-            "ERROR: Number of anitbodies must evenly divide the number of columns"
+        # fall back to the default antibiotic layout when none is given
+        if antibiotics is None:
+            antibiotics = DEFAULT_ANTIBIOTICS
 
-        assert init_cols[0] >= 0 and init_cols[1] < n_cols, \
-            "Starting columns must be greater than zero and less than the total number of columns."
+        # default: seed bacteria at the left and right edges of the dish
+        if init_cols is None:
+            init_cols = [0, n_cols - 1]
 
         # list of all the bugs in the simulation
         self.buglist = []
 
-        # sets the attribute self.antibodies that stores the world info
+        # sets the attribute self.antibiotics that stores the world info
         self._basic_setup(n_rows=n_rows, n_cols=n_cols,
-                          antibods=antibods, init_cols=init_cols,
+                          antibiotics=antibiotics, init_cols=init_cols,
                           bug_mutation_rate=bug_mutation_rate)
 
     def _basic_setup(self, n_rows=45, n_cols=90,
-                     antibods=[0, 0.5, 0.75, 0.8, 0.95, 0.8, 0.75, 0.5, 0],
-                     init_cols=[0, 89],
+                     antibiotics=None,
+                     init_cols=None,
                      bug_mutation_rate=0.2):
         """Sets up the world.
-        
+
         Helper function for __init__ method with same arguments as __init__.
         """
-        # initialize bugs on the left and right sides of the petri dish
+        # fall back to the default antibiotic layout when none is given
+        if antibiotics is None:
+            antibiotics = DEFAULT_ANTIBIOTICS
+
+        # default: seed bacteria at the left and right edges of the dish
+        if init_cols is None:
+            init_cols = [0, n_cols - 1]
+
+        # seed the initial bacteria: one bug per row at each column in init_cols
         for row in range(n_rows):
-            # bugs on the left
-            bl = Bug(c=init_cols[1], r=row, mutation_rate=bug_mutation_rate)
+            for col in init_cols:
+                self.buglist.append(Bug(c=col, r=row, mutation_rate=bug_mutation_rate))
 
-            # bugs on the right
-            br = Bug(c=init_cols[0], r=row, mutation_rate=bug_mutation_rate)
-
-            # add initial bugs the buglist
-            self.buglist.append(br)
-            self.buglist.append(bl)
-
-        # set up the board of antibodies
-        step = n_cols // len(antibods)
-        self.antibodies = np.zeros((n_rows, n_cols, 3))
-        for ii in range(n_cols // step):
-            self.antibodies[:, ii * step: (ii + 1) * step + 1] = [antibods[ii]] * 3
+        # set up the board of antibiotics
+        step = n_cols // len(antibiotics)
+        self.antibiotics = np.zeros((n_rows, n_cols, 3))
+        for ii in range(len(antibiotics)):
+            self.antibiotics[:, ii * step: (ii + 1) * step] = [antibiotics[ii]] * 3
 
     def timestep(self):
         """Performs one time step of the simulation.
@@ -209,8 +222,8 @@ class PetriDish():
         antibiotic values.
         """
         newbugs = []
-        n_cols = self.antibodies.shape[1]
-        n_rows = self.antibodies.shape[0]
+        n_cols = self.antibiotics.shape[1]
+        n_rows = self.antibiotics.shape[0]
 
         occupied = {bug.loc for bug in self.buglist} # makes a set of all the occupied locations for fast lookup
 
@@ -232,7 +245,7 @@ class PetriDish():
                     # check if bug survives in the new location
                     alive = True
                     for i, g in enumerate(child_bug.genes): # Loop through each gene
-                        if g < self.antibodies[loc[1], loc[0], i]:
+                        if g < self.antibiotics[loc[1], loc[0], i]:
                             alive = False
                     child_bug.active = alive
                     occupied.add(loc) # mark the new location as occupied
@@ -247,7 +260,7 @@ class PetriDish():
 
     def draw(self, background=None):
         """Draws the world as an image and plots each bug."""
-        plt.imshow(1.0 - self.antibodies)
+        plt.imshow(1.0 - self.antibiotics)
         coords=np.array([b.getCoords() for b in self.buglist])
         cols=[b.getCol() for b in self.buglist]
         plt.scatter(coords[:,0],coords[:,1],color=cols)
